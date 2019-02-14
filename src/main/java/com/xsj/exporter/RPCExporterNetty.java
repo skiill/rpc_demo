@@ -1,5 +1,14 @@
 package com.xsj.exporter;
 
+import com.xsj.handler.EchoServerHandler;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -10,24 +19,45 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
 /**
- * 使用Socket作为通信工具
+ * 使用netty作为通信工具
  * @author xsj
  *
  */
-public class RPCExporter {
-    static Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+public class RPCExporterNetty {
 
-    public static void exporter(String hostName,int port)throws IOException{
-        ServerSocket server = new ServerSocket();
-        server.bind(new InetSocketAddress(hostName,port));
+//    static Executor executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    public static void exporter(String hostName,int port)throws IOException {
+        EventLoopGroup group = new NioEventLoopGroup();
+        Bootstrap bootstrap = new Bootstrap();
+
+        bootstrap.group(group).channel(NioSocketChannel.class).remoteAddress(new InetSocketAddress(hostName,port)).handler(new ChannelInitializer<SocketChannel>() {
+
+            @Override
+            protected void initChannel(SocketChannel socketChannel) {
+                socketChannel.pipeline().addLast(new EchoServerHandler());
+            }
+        });
+
+
+
+        ChannelFuture future = null;
         try{
-            while (true)
-            executor.execute(new ExporterTask(server.accept()));
+            future = bootstrap.connect().sync();
+
+
         }catch (Exception e){
             e.printStackTrace();
         }finally {
-            server.close();
+            try {
+                future.channel().closeFuture().sync();
+                group.shutdownGracefully().sync();
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
+//            server.close();
         }
 
     }

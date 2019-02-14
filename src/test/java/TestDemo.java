@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Scanner;
 
 public class TestDemo {
 
@@ -24,6 +25,12 @@ public class TestDemo {
 
         RPCImporter<EchoServer> importer = new RPCImporter<EchoServer>();
         EchoServer echo = importer.importer(EchoServerImpl.class,new InetSocketAddress("localhost",8080));
-        System.out.println(echo.echo("are you ok"));
+
+        System.out.println(echo.echo("ok"));
+
+            Scanner sc = new Scanner(System.in);
+            System.out.println(echo.echo(sc.next()));
+
+
     }
 }
